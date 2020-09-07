@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/niklaus-code/hello/server"
+	"github.com/niklaus-code/go-ftp/server"
 )
 
 type FileDriver struct {
