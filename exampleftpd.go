@@ -10,8 +10,8 @@ import (
 	"flag"
 	"log"
 
-	filedriver "github.com/niklaus-code/go-ftp/file-driver"
-	"github.com/niklaus-code/go-ftp/server"
+	filedriver "github.com/niklaus-code/goftp-vdir/file-driver"
+	"github.com/niklaus-code/goftp-vdir/server"
 )
 
 func main() {
