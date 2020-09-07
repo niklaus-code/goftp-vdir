@@ -8,7 +8,7 @@ import (
 	"crypto/subtle"
 	"fmt"
 
-	"github.com/niklaus-code/hello/db"
+	"github.com/niklaus-code/goftp-vdir/db"
 )
 
 // Auth is an interface to auth your ftp user login.
