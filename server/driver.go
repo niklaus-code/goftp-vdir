@@ -33,9 +33,11 @@ type Driver interface {
 	// params  - path, function on file or subdir found
 	// returns - error
 	//           path
+
+	ListDirs(string, func(FileInfo) error) error
+
 	ListDir(string, func(FileInfo) error) error
 	//ListDir(string, string, func(FileInfo) error) error
-
 	// params  - path
 	// returns - nil if the directory was deleted or any error encountered
 	DeleteDir(string) error

@@ -30,9 +30,8 @@ type ServerOpts struct {
 	// Server Name, Default is Go Ftp Server
 	Name string
 
-
-    //rootpath
-    RootPath string
+	//rootpath
+	RootPath string
 
 	// The hostname that the FTP server should listen on. Optional, defaults to
 	// "::", which means all hostnames on ipv4 and ipv6.

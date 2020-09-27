@@ -16,7 +16,7 @@ import (
 
 func main() {
 	var (
-		root = flag.String("root", "/mnt/mfs230/gscloud_data/private", "Root directory to serve")
+		root = flag.String("root", "/mnt/gscloud/gscloud_data/private", "Root directory to serve")
 		user = flag.String("user", "admin", "Username for login")
 		pass = flag.String("pass", "123456", "Password for login")
 		port = flag.Int("port", 2121, "Port")
@@ -36,10 +36,11 @@ func main() {
 		Factory:  factory,
 		Port:     *port,
 		Hostname: *host,
-        RootPath: *root,
+		RootPath: *root,
 		Auth:     &server.SimpleAuth{Name: *user, Password: *pass},
 	}
 
+	log.Println("请使用root用户启动项目")
 	log.Printf("Starting ftp server on %v:%v", opts.Hostname, opts.Port)
 	log.Printf("Username %v, Password %v", *user, *pass)
 	server := server.NewServer(opts)

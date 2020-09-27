@@ -36,13 +36,10 @@ func (f *FileInfo) Group() string {
 	return f.group
 }
 
-
-
 func (driver *FileDriver) realPath(path string) string {
 	paths := strings.Split(path, "/")
 	return filepath.Join(append([]string{driver.RootPath}, paths...)...)
 }
-
 
 func (driver *FileDriver) Init(conn *server.Conn) {
 	//driver.conn = conn
@@ -91,9 +88,39 @@ func (driver *FileDriver) Stat(path string) (server.FileInfo, error) {
 	return &FileInfo{f, mode, owner, group}, nil
 }
 
+//虚拟目录path替换为数据里面文件 明天实现
+func (driver *FileDriver) ListDirs(path string, callback func(server.FileInfo) error) error {
+	return filepath.Walk(path, func(f string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		mode, err := driver.Perm.GetMode(path)
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			mode |= os.ModeDir
+		}
+		owner, err := driver.Perm.GetOwner(path)
+		if err != nil {
+			return err
+		}
+		group, err := driver.Perm.GetGroup(path)
+		if err != nil {
+			return err
+		}
+		err = callback(&FileInfo{info, mode, owner, group})
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return filepath.SkipDir
+		}
+		return nil
+	})
+}
+
 func (driver *FileDriver) ListDir(path string, callback func(server.FileInfo) error) error {
-//func (driver *FileDriver) ListDir(user string, path string, callback func(server.FileInfo) error) error {
-//	basepath := driver.realPaths(user, path)
 	basepath := path
 	return filepath.Walk(basepath, func(f string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -165,7 +192,7 @@ func (driver *FileDriver) MakeDir(path string) error {
 }
 
 func (driver *FileDriver) GetFile(path string, offset int64) (int64, io.ReadCloser, error) {
-    rPath := path
+	rPath := path
 
 	f, err := os.Open(rPath)
 	if err != nil {

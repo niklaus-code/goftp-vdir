@@ -10,6 +10,8 @@ import (
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/niklaus-code/goftp-vdir/db"
 )
 
 type Command interface {
@@ -113,7 +115,7 @@ func (cmd commandAppe) Execute(conn *Conn, param string) {
 	targetPath := conn.buildPath(param)
 	conn.writeMessage(150, "Data transfer starting")
 
-    currentpath := conn.rootpath+"/"+conn.user+targetPath
+	currentpath := conn.rootpath + "/" + conn.user + targetPath
 	bytes, err := conn.driver.PutFile(currentpath, conn.dataConn, true)
 	if err == nil {
 		msg := "OK, received " + strconv.Itoa(int(bytes)) + " bytes"
@@ -225,15 +227,27 @@ func (cmd commandCwd) RequireAuth() bool {
 }
 
 func (cmd commandCwd) Execute(conn *Conn, param string) {
-	path := conn.buildPath(param)
-    currentpath := conn.rootpath+"/"+conn.user+path
-	err := conn.driver.ChangeDir(currentpath)
+	if string(conn.pwd[0]) == "a" {
+		path := conn.buildPath(param)
+		currentpath := conn.rootpath + "/" + conn.user + path
+		err := conn.driver.ChangeDir(currentpath)
 
-	if err == nil {
-		conn.namePrefix = path
-		conn.writeMessage(250, "Directory changed to "+path)
+		if err == nil {
+			conn.namePrefix = path
+			conn.writeMessage(250, "Directory changed to "+path)
+		} else {
+			conn.writeMessage(550, fmt.Sprint("Directory change to ", path, " failed: ", err))
+		}
 	} else {
-		conn.writeMessage(550, fmt.Sprint("Directory change to ", path, " failed: ", err))
+		path := conn.buildPath(param)
+		err := conn.driver.ChangeDir(path)
+
+		if err == nil {
+			conn.namePrefix = path
+			conn.writeMessage(250, "Directory changed to "+path)
+		} else {
+			conn.writeMessage(550, fmt.Sprint("Directory change to ", path, " failed: ", err))
+		}
 	}
 }
 
@@ -259,7 +273,7 @@ func (cmd commandDele) Execute(conn *Conn, param string) {
 		return
 	}
 	path := conn.buildPath(param)
-    currentpath := conn.rootpath+"/"+conn.user+path
+	currentpath := conn.rootpath + "/" + conn.user + path
 	err := conn.driver.DeleteFile(currentpath)
 	if err == nil {
 		conn.writeMessage(250, "File deleted")
@@ -397,7 +411,7 @@ func (cmd commandEpsv) Execute(conn *Conn, param string) {
 	conn.writeMessage(229, msg)
 }
 
-// commandList responds to the LIST FTP command. It allows the client to retreive
+// commandList responds to the  FTP command. It allows the client to retreive
 // a detailed listing of the contents of a directory.
 type commandList struct{}
 
@@ -413,39 +427,109 @@ func (cmd commandList) RequireAuth() bool {
 	return true
 }
 
-func (cmd commandList) Execute(conn *Conn, param string) {
+type FilePath struct {
+	Datapath string `json:"filepath"`
+}
 
-	path := conn.buildPath(parseListParam(param))
-    currentpath := conn.rootpath+"/"+conn.user+path
-
-	info, err := conn.driver.Stat(currentpath)
-
+func batchdatalist(batchid string) []*FilePath {
+	c := db.Db()
+	rows, err := c.Query("select rel_filename from gscloud_batch_data where batchid = $1", batchid)
 	if err != nil {
-		conn.writeMessage(550, err.Error())
-		return
+		fmt.Println(err)
+		return nil
 	}
 
-	if info == nil {
-		conn.logger.Printf(conn.sessionID, "%s: no such file or directory.\n", path)
-		return
+	var filpathlist []*FilePath
+	for rows.Next() {
+		var filepath FilePath
+		rows.Scan(&filepath.Datapath)
+		filpathlist = append(filpathlist, &filepath)
+	}
+	return filpathlist
+}
+
+func filelist(dataid string) []*FilePath {
+	c := db.Db()
+
+	rows, err := c.Query("select datapath from user_favor_dataset_files where datasetid = $1", dataid)
+	if err != nil {
+		fmt.Println(err)
+		return nil
 	}
 
+	var filpathlist []*FilePath
+	for rows.Next() {
+		var filepath FilePath
+		rows.Scan(&filepath.Datapath)
+		filpathlist = append(filpathlist, &filepath)
+	}
+	return filpathlist
+}
+
+func (cmd commandList) Execute(conn *Conn, param string) {
 	var files []FileInfo
-	if info.IsDir() {
-		err = conn.driver.ListDir(currentpath, func(f FileInfo) error {
-			files = append(files, f)
-			return nil
-		})
+	if string(conn.pwd[0]) == "a" {
+		path := conn.buildPath(parseListParam(param))
+		currentpath := conn.rootpath + "/" + conn.user + path
+
+		info, err := conn.driver.Stat(currentpath)
+
 		if err != nil {
 			conn.writeMessage(550, err.Error())
 			return
 		}
-	} else {
-		files = append(files, info)
-	}
 
-	conn.writeMessage(150, "Opening ASCII mode data connection for file list")
-	conn.sendOutofbandData(listFormatter(files).Detailed())
+		if info == nil {
+			conn.logger.Printf(conn.sessionID, "%s: no such file or directory.\n", path)
+			return
+		}
+
+		if info.IsDir() {
+			err = conn.driver.ListDir(currentpath, func(f FileInfo) error {
+				files = append(files, f)
+				return nil
+			})
+			if err != nil {
+				conn.writeMessage(550, err.Error())
+				return
+			}
+		} else {
+			files = append(files, info)
+		}
+		conn.writeMessage(150, "Opening ASCII mode data connection for file list")
+		conn.sendOutofbandData(listFormatter(files).Detailed())
+	}
+	if string(conn.pwd[0]) == "b" {
+		filepaths := filelist(conn.user)
+
+		for i := 0; i < len(filepaths); i++ {
+			err := conn.driver.ListDirs(filepaths[i].Datapath, func(f FileInfo) error {
+				files = append(files, f)
+				return nil
+			})
+			if err != nil {
+				conn.writeMessage(550, err.Error())
+				return
+			}
+		}
+		conn.writeMessage(150, "Opening ASCII mode data connection for file list")
+		conn.sendOutofbandData(listFormatter(files).Detailed())
+	}
+	if string(conn.pwd[0]) == "c" {
+		filepaths := batchdatalist(conn.user)
+		for i := 0; i < len(filepaths); i++ {
+			err := conn.driver.ListDirs(filepaths[i].Datapath, func(f FileInfo) error {
+				files = append(files, f)
+				return nil
+			})
+			if err != nil {
+				conn.writeMessage(550, err.Error())
+				return
+			}
+		}
+		conn.writeMessage(150, "Opening ASCII mode data connection for file list")
+		conn.sendOutofbandData(listFormatter(files).Detailed())
+	}
 }
 
 func parseListParam(param string) (path string) {
@@ -555,7 +639,7 @@ func (cmd commandMkd) Execute(conn *Conn, param string) {
 		return
 	}
 	path := conn.buildPath(param)
-    currentpath := conn.rootpath+"/"+conn.user+path
+	currentpath := conn.rootpath + "/" + conn.user + path
 	err := conn.driver.MakeDir(currentpath)
 	//err := conn.driver.MakeDir(path)
 
@@ -634,6 +718,7 @@ func (cmd commandPass) RequireAuth() bool {
 
 func (cmd commandPass) Execute(conn *Conn, param string) {
 	ok, err := conn.server.Auth.CheckPasswd(conn.reqUser, param)
+
 	if err != nil {
 		conn.writeMessage(550, "Checking password error")
 		return
@@ -641,6 +726,7 @@ func (cmd commandPass) Execute(conn *Conn, param string) {
 
 	if ok != 0 {
 		conn.user = conn.reqUser
+		conn.pwd = param
 		conn.reqUser = ""
 		conn.privileges = ok
 		conn.writeMessage(230, "Password ok, continue")
@@ -774,24 +860,80 @@ func (cmd commandRetr) RequireAuth() bool {
 	return true
 }
 
+func batchdatapath(filename string) string {
+	c := db.Db()
+
+	var filepath string
+	err := c.QueryRow("select rel_filename from gscloud_batch_data where batchid = $1", filename).Scan(&filepath)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return filepath
+}
+
+func filedatalist(filename string) string {
+	c := db.Db()
+
+	var filepath string
+	err := c.QueryRow("select datapath from user_favor_dataset_files where datasetid = $1", filename).Scan(&filepath)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return filepath
+}
+
 func (cmd commandRetr) Execute(conn *Conn, param string) {
-	path := conn.buildPath(param)
-	defer func() {
-		conn.lastFilePos = 0
-		conn.appendData = false
-	}()
-    currentpath := conn.rootpath+"/"+conn.user+path
-	bytes, data, err := conn.driver.GetFile(currentpath, conn.lastFilePos)
-	//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
-	if err == nil {
-		defer data.Close()
-		conn.writeMessage(150, fmt.Sprintf("Data transfer starting %v bytes", bytes))
-		err = conn.sendOutofBandDataWriter(data)
-		if err != nil {
-			conn.writeMessage(551, "Error reading file")
+	if string(conn.pwd[0]) == "a" {
+		path := conn.buildPath(param)
+		defer func() {
+			conn.lastFilePos = 0
+			conn.appendData = false
+		}()
+		currentpath := conn.rootpath + "/" + conn.user + path
+		bytes, data, err := conn.driver.GetFile(currentpath, conn.lastFilePos)
+		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
+		if err == nil {
+			defer data.Close()
+			conn.writeMessage(150, fmt.Sprintf("Data transfer starting %v bytes", bytes))
+			err = conn.sendOutofBandDataWriter(data)
+			if err != nil {
+				conn.writeMessage(551, "Error reading file")
+			}
+		} else {
+			conn.writeMessage(551, "File not available")
 		}
-	} else {
-		conn.writeMessage(551, "File not available")
+	}
+	if string(conn.pwd[0]) == "b" {
+		filepath := filedatalist(conn.user)
+		bytes, data, err := conn.driver.GetFile(filepath, conn.lastFilePos)
+		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
+		if err == nil {
+			defer data.Close()
+			conn.writeMessage(150, fmt.Sprintf("Data transfer starting %v bytes", bytes))
+			err = conn.sendOutofBandDataWriter(data)
+			if err != nil {
+				conn.writeMessage(551, "Error reading file")
+			}
+		} else {
+			conn.writeMessage(551, "File not available")
+		}
+	}
+	if string(conn.pwd[0]) == "c" {
+		filepath := batchdatapath(conn.user)
+		bytes, data, err := conn.driver.GetFile(filepath, conn.lastFilePos)
+		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
+		if err == nil {
+			defer data.Close()
+			conn.writeMessage(150, fmt.Sprintf("Data transfer starting %v bytes", bytes))
+			err = conn.sendOutofBandDataWriter(data)
+			if err != nil {
+				conn.writeMessage(551, "Error reading file")
+			}
+		} else {
+			conn.writeMessage(551, "File not available")
+		}
 	}
 }
 
@@ -864,8 +1006,8 @@ func (cmd commandRnto) Execute(conn *Conn, param string) {
 		conn.writeMessage(550, fmt.Sprint("没有权限"))
 		return
 	}
-	toPath := conn.rootpath+"/"+conn.user+conn.buildPath(param)
-    frompath := conn.rootpath+"/"+conn.user+conn.renameFrom
+	toPath := conn.rootpath + "/" + conn.user + conn.buildPath(param)
+	frompath := conn.rootpath + "/" + conn.user + conn.renameFrom
 	err := conn.driver.Rename(frompath, toPath)
 	defer func() {
 		conn.renameFrom = ""
@@ -900,7 +1042,7 @@ func (cmd commandRmd) Execute(conn *Conn, param string) {
 		return
 	}
 	path := conn.buildPath(param)
-    currentpath := conn.rootpath+"/"+conn.user+path
+	currentpath := conn.rootpath + "/" + conn.user + path
 	err := conn.driver.DeleteDir(currentpath)
 	if err == nil {
 		conn.writeMessage(250, "Directory deleted")
@@ -1088,14 +1230,25 @@ func (cmd commandSize) RequireAuth() bool {
 }
 
 func (cmd commandSize) Execute(conn *Conn, param string) {
-	path := conn.buildPath(param)
-    currentpath := conn.rootpath+"/"+conn.user+path
-	stat, err := conn.driver.Stat(currentpath)
-	if err != nil {
-		log.Printf("Size: error(%s)", err)
-		conn.writeMessage(450, fmt.Sprint("path", path, "not found"))
+	if conn.pwd == "123456" {
+		path := conn.buildPath(param)
+		currentpath := conn.rootpath + "/" + conn.user + path
+		stat, err := conn.driver.Stat(currentpath)
+		if err != nil {
+			log.Printf("Size: error(%s)", err)
+			conn.writeMessage(450, fmt.Sprint("path", path, "not found"))
+		} else {
+			conn.writeMessage(213, strconv.Itoa(int(stat.Size())))
+		}
 	} else {
-		conn.writeMessage(213, strconv.Itoa(int(stat.Size())))
+		path := "/opt"
+		stat, err := conn.driver.Stat("/opt")
+		if err != nil {
+			log.Printf("Size: error(%s)", err)
+			conn.writeMessage(450, fmt.Sprint("path", path, "not found"))
+		} else {
+			conn.writeMessage(213, strconv.Itoa(int(stat.Size())))
+		}
 	}
 }
 
@@ -1127,7 +1280,7 @@ func (cmd commandStor) Execute(conn *Conn, param string) {
 	defer func() {
 		conn.appendData = false
 	}()
-    currentpath := conn.rootpath+"/"+conn.user+targetPath
+	currentpath := conn.rootpath + "/" + conn.user + targetPath
 	bytes, err := conn.driver.PutFile(currentpath, conn.dataConn, conn.appendData)
 	if err == nil {
 		msg := "OK, received " + strconv.Itoa(int(bytes)) + " bytes"

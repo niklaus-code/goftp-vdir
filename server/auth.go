@@ -30,45 +30,58 @@ type SimpleAuth struct {
 func check(name string, pass string) int {
 	c := db.Db()
 
-	var rpassword string
-	var wpassword string
-	rows, err := c.Query("select rpassword, wpassword from user_datasets where id = $1", name)
-	if err != nil {
-		fmt.Println(err)
-		return 0
+	if string(pass[0]) == "a" {
+		var rpassword string
+		var wpassword string
+		rows, err := c.Query("select rpassword, wpassword from user_datasets where id = $1", name)
+		if err != nil {
+			fmt.Println(err)
+			return 0
+		}
+
+		for rows.Next() {
+			rows.Scan(&rpassword, &wpassword)
+		}
+
+		if pass == rpassword {
+			return 1
+		}
+
+		if pass == wpassword {
+			return 2
+		}
+	}
+	if string(pass[0]) == "b" {
+		var ftppassword string
+		rows, err := c.Query("select ftppassword from user_favor_datasets where id = $1", name)
+
+		if err != nil {
+			fmt.Println(err)
+			return 0
+		}
+
+		for rows.Next() {
+			rows.Scan(&ftppassword)
+		}
+
+		if pass == ftppassword {
+			return 1
+		}
+	}
+	if string(pass[0]) == "c" {
+		var ftppassword string
+		err := c.QueryRow("select ftppassword from gscloud_batch_info where batchid = $1", name).Scan(&ftppassword)
+
+		if err != nil {
+			return 0
+		}
+
+		if pass == ftppassword {
+			return 1
+		}
 	}
 
-	for rows.Next() {
-		rows.Scan(&rpassword, &wpassword)
-	}
-
-    if pass == rpassword {
-        return 1
-        }
-
-    if pass == wpassword {
-        return 2
-        }
-    return 0
-    /*
-	var password string
-	rows, err := c.Query("select password from auth_user where userid = $1", name)
-
-	if err != nil {
-		fmt.Println(err)
-		return false
-	}
-
-	for rows.Next() {
-		rows.Scan(&password)
-	}
-
-	pwd := encryption(password)
-	if subtle.ConstantTimeCompare([]byte(pwd), []byte(password)) == 1 {
-		return true
-	}
-	return false
-    */
+	return 0
 }
 
 // CheckPasswd will check user's password
