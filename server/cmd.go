@@ -471,7 +471,6 @@ func (cmd commandList) Execute(conn *Conn, param string) {
 	if string(conn.pwd[0]) == "a" {
 		path := conn.buildPath(parseListParam(param))
 		currentpath := conn.rootpath + "/" + conn.user + path
-
 		info, err := conn.driver.Stat(currentpath)
 
 		if err != nil {

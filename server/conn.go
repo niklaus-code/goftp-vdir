@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -196,7 +197,7 @@ func (conn *Conn) writeMessage(code int, message string) (wrote int, err error) 
 	return
 }
 
-// writeMessage will send a standard FTP response back to the client.
+// writeMessage will send a standard FTP response back to the client.c:[1&m'w!\
 func (conn *Conn) writeMessageMultiline(code int, message string) (wrote int, err error) {
 	conn.logger.PrintResponse(conn.sessionID, code, message)
 	line := fmt.Sprintf("%d-%s\r\n%d END\r\n", code, message, code)
@@ -248,9 +249,31 @@ func (conn *Conn) sendOutofbandData(data []byte) {
 	conn.writeMessage(226, message)
 }
 
+func CopyRate(dst io.Writer, src io.Reader, bps int64) (written int64, err error) {
+	throttle := time.NewTicker(time.Second)
+	defer throttle.Stop()
+
+	var n int64
+	for {
+		n, err = io.CopyN(dst, src, bps)
+		if n > 0 {
+			written += n
+		}
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			break
+		}
+		<-throttle.C // rate limit our flows
+	}
+	return written, err
+}
+
 func (conn *Conn) sendOutofBandDataWriter(data io.ReadCloser) error {
 	conn.lastFilePos = 0
-	bytes, err := io.Copy(conn.dataConn, data)
+	// bytes, err := io.Copy(conn.dataConn, data)
+	bytes, err := CopyRate(conn.dataConn, data, 1024*10*10*10)
 	if err != nil {
 		conn.dataConn.Close()
 		conn.dataConn = nil
