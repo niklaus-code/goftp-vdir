@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/niklaus-code/goftp-vdir/db"
+	"github.com/niklaus-code/goftp-vdir/config"
 )
 
 type Command interface {
@@ -432,7 +432,7 @@ type FilePath struct {
 }
 
 func batchdatalist(batchid string) []*FilePath {
-	c := db.Db()
+	c := config.Db()
 	rows, err := c.Query("select rel_filename from gscloud_batch_data where batchid = $1", batchid)
 	if err != nil {
 		fmt.Println(err)
@@ -449,7 +449,7 @@ func batchdatalist(batchid string) []*FilePath {
 }
 
 func filelist(dataid string) []*FilePath {
-	c := db.Db()
+	c := config.Db()
 
 	rows, err := c.Query("select datapath from user_favor_dataset_files where datasetid = $1", dataid)
 	if err != nil {
@@ -860,7 +860,7 @@ func (cmd commandRetr) RequireAuth() bool {
 }
 
 func batchdatapath(filename string) string {
-	c := db.Db()
+	c := config.Db()
 
 	var filepath string
 	err := c.QueryRow("select rel_filename from gscloud_batch_data where batchid = $1", filename).Scan(&filepath)
@@ -872,7 +872,7 @@ func batchdatapath(filename string) string {
 }
 
 func filedatalist(filename string) string {
-	c := db.Db()
+	c := config.Db()
 
 	var filepath string
 	err := c.QueryRow("select datapath from user_favor_dataset_files where datasetid = $1", filename).Scan(&filepath)
