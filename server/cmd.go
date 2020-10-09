@@ -229,7 +229,8 @@ func (cmd commandCwd) RequireAuth() bool {
 func (cmd commandCwd) Execute(conn *Conn, param string) {
 	if string(conn.pwd[0]) == "a" {
 		path := conn.buildPath(param)
-		currentpath := conn.rootpath + "/" + conn.user + path
+		datapath := query_datapath(conn.user)
+		currentpath := datapath + path
 		err := conn.driver.ChangeDir(currentpath)
 
 		if err == nil {
@@ -273,7 +274,8 @@ func (cmd commandDele) Execute(conn *Conn, param string) {
 		return
 	}
 	path := conn.buildPath(param)
-	currentpath := conn.rootpath + "/" + conn.user + path
+	datapath := query_datapath(conn.user)
+	currentpath := datapath + path
 	err := conn.driver.DeleteFile(currentpath)
 	if err == nil {
 		conn.writeMessage(250, "File deleted")
@@ -466,11 +468,22 @@ func filelist(dataid string) []*FilePath {
 	return filpathlist
 }
 
+func query_datapath(datasetid string) string {
+	c := config.Db()
+	var datapath string
+	err := c.QueryRow("select datapath from user_datasets where id = $1", datasetid).Scan(&datapath)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return datapath
+}
+
 func (cmd commandList) Execute(conn *Conn, param string) {
 	var files []FileInfo
 	if string(conn.pwd[0]) == "a" {
 		path := conn.buildPath(parseListParam(param))
-		currentpath := conn.rootpath + "/" + conn.user + path
+		datapath := query_datapath(conn.user)
+		currentpath := datapath + path
 		info, err := conn.driver.Stat(currentpath)
 
 		if err != nil {
@@ -479,7 +492,7 @@ func (cmd commandList) Execute(conn *Conn, param string) {
 		}
 
 		if info == nil {
-			conn.logger.Printf(conn.sessionID, "%s: no such file or directory.\n", path)
+			conn.logger.Printf(conn.sessionID, "%s: no such file or directory.\n", currentpath)
 			return
 		}
 
@@ -890,7 +903,9 @@ func (cmd commandRetr) Execute(conn *Conn, param string) {
 			conn.lastFilePos = 0
 			conn.appendData = false
 		}()
-		currentpath := conn.rootpath + "/" + conn.user + path
+		datapath := query_datapath(conn.user)
+		currentpath := datapath + path
+		//currentpath := conn.rootpath + "/" + conn.user + path
 		bytes, data, err := conn.driver.GetFile(currentpath, conn.lastFilePos)
 		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
 		if err == nil {
@@ -1005,8 +1020,11 @@ func (cmd commandRnto) Execute(conn *Conn, param string) {
 		conn.writeMessage(550, fmt.Sprint("没有权限"))
 		return
 	}
-	toPath := conn.rootpath + "/" + conn.user + conn.buildPath(param)
-	frompath := conn.rootpath + "/" + conn.user + conn.renameFrom
+	path := conn.buildPath(param)
+	datapath := query_datapath(conn.user)
+
+	toPath := datapath + path
+	frompath := datapath + conn.renameFrom
 	err := conn.driver.Rename(frompath, toPath)
 	defer func() {
 		conn.renameFrom = ""
@@ -1041,7 +1059,8 @@ func (cmd commandRmd) Execute(conn *Conn, param string) {
 		return
 	}
 	path := conn.buildPath(param)
-	currentpath := conn.rootpath + "/" + conn.user + path
+	datapath := query_datapath(conn.user)
+	currentpath := datapath + path
 	err := conn.driver.DeleteDir(currentpath)
 	if err == nil {
 		conn.writeMessage(250, "Directory deleted")
@@ -1229,9 +1248,10 @@ func (cmd commandSize) RequireAuth() bool {
 }
 
 func (cmd commandSize) Execute(conn *Conn, param string) {
-	if conn.pwd == "123456" {
+	if string(conn.pwd[0]) == "a" {
 		path := conn.buildPath(param)
-		currentpath := conn.rootpath + "/" + conn.user + path
+		datapath := query_datapath(conn.user)
+		currentpath := datapath + path
 		stat, err := conn.driver.Stat(currentpath)
 		if err != nil {
 			log.Printf("Size: error(%s)", err)
@@ -1279,7 +1299,8 @@ func (cmd commandStor) Execute(conn *Conn, param string) {
 	defer func() {
 		conn.appendData = false
 	}()
-	currentpath := conn.rootpath + "/" + conn.user + targetPath
+	datapath := query_datapath(conn.user)
+	currentpath := datapath + targetPath
 	bytes, err := conn.driver.PutFile(currentpath, conn.dataConn, conn.appendData)
 	if err == nil {
 		msg := "OK, received " + strconv.Itoa(int(bytes)) + " bytes"
