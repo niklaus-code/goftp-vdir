@@ -651,7 +651,8 @@ func (cmd commandMkd) Execute(conn *Conn, param string) {
 		return
 	}
 	path := conn.buildPath(param)
-	currentpath := conn.rootpath + "/" + conn.user + path
+	datapath := query_datapath(conn.user)
+	currentpath := datapath + path
 	err := conn.driver.MakeDir(currentpath)
 	//err := conn.driver.MakeDir(path)
 
@@ -905,9 +906,7 @@ func (cmd commandRetr) Execute(conn *Conn, param string) {
 		}()
 		datapath := query_datapath(conn.user)
 		currentpath := datapath + path
-		//currentpath := conn.rootpath + "/" + conn.user + path
 		bytes, data, err := conn.driver.GetFile(currentpath, conn.lastFilePos)
-		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
 		if err == nil {
 			defer data.Close()
 			conn.writeMessage(150, fmt.Sprintf("Data transfer starting %v bytes", bytes))
