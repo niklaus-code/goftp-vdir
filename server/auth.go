@@ -8,7 +8,7 @@ import (
 	"crypto/subtle"
 	"fmt"
 
-	"github.com/niklaus-code/goftp-vdir/db"
+	"github.com/niklaus-code/goftp-vdir/config"
 )
 
 // Auth is an interface to auth your ftp user login.
@@ -28,7 +28,7 @@ type SimpleAuth struct {
 }
 
 func check(name string, pass string) int {
-	c := db.Db()
+	c := config.Db()
 
 	headpass := string(pass[0])
 
