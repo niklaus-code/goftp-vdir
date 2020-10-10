@@ -14,18 +14,17 @@ import (
 // Auth is an interface to auth your ftp user login.
 type Auth interface {
 	CheckPasswd(string, string) (int, error)
-	//CheckPasswd(string, string) (bool, error)
 }
 
-var (
-	_ Auth = &SimpleAuth{}
-)
+// var (
+// 	_ Auth = &SimpleAuth{}
+// )
 
 // SimpleAuth implements Auth interface to provide a memory user login auth
-type SimpleAuth struct {
-	Name     string
-	Password string
-}
+// type SimpleAuth struct {
+// 	Name     string
+// 	Password string
+// }
 
 func check(name string, pass string) int {
 	c := config.Db()
@@ -39,6 +38,7 @@ func check(name string, pass string) int {
 		err := c.QueryRow("select rpassword, wpassword from user_datasets where id = $1", name).Scan(&rpassword, &wpassword)
 
 		if err != nil {
+			fmt.Println("--------------------")
 			fmt.Println(err)
 			return 0
 		}
@@ -83,7 +83,8 @@ func check(name string, pass string) int {
 }
 
 // CheckPasswd will check user's password
-func (a *SimpleAuth) CheckPasswd(name, pass string) (int, error) {
+// func (a *SimpleAuth) CheckPasswd(name, pass string) (int, error) {
+func CheckPasswd(name, pass string) (int, error) {
 	return check(name, pass), nil
 	// return constantTimeEquals(name, a.Name) && constantTimeEquals(pass, a.Password), nil
 }
