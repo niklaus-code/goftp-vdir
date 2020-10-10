@@ -19,6 +19,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/niklaus-code/goftp-vdir/config"
 )
 
 const (
@@ -271,9 +273,10 @@ func CopyRate(dst io.Writer, src io.Reader, bps int64) (written int64, err error
 }
 
 func (conn *Conn) sendOutofBandDataWriter(data io.ReadCloser) error {
+	downloadrate := int64(config.Download_rate())
 	conn.lastFilePos = 0
 	// bytes, err := io.Copy(conn.dataConn, data)
-	bytes, err := CopyRate(conn.dataConn, data, 1024*10*10*10)
+	bytes, err := CopyRate(conn.dataConn, data, downloadrate)
 	if err != nil {
 		conn.dataConn.Close()
 		conn.dataConn = nil
