@@ -8,33 +8,26 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func Db() *sql.DB {
-	cfg, err := ini.Load("conf/setting.ini")
-	if err != nil {
-		fmt.Println(err)
-	}
-	var ip = cfg.Section("postgres").Key("ip").String()
-	// var port = cfg.Section("postgres").Key("port").String()
-	var user = cfg.Section("postgres").Key("user").String()
-	// var passwd = cfg.Section("postgres").Key("passwd").String()
-	var database = cfg.Section("postgres").Key("database").String()
+var Dbname = "postgres"
+var cfg, _ = ini.Load("conf/setting.ini")
 
-	conn := fmt.Sprintf("host=%s  user=%s  dbname=%s  sslmode=disable", ip, user, database)
-	db, err := sql.Open("postgres", conn)
+func Db() *sql.DB {
+
+	var ip = cfg.Section(Dbname).Key("ip").String()
+	var port = cfg.Section(Dbname).Key("port").String()
+	var user = cfg.Section(Dbname).Key("user").String()
+	var passwd = cfg.Section(Dbname).Key("passwd").String()
+	var database = cfg.Section(Dbname).Key("database").String()
+
+	conn := fmt.Sprintf("host=%s  user=%s  dbname=%s port=%s passwd=%s sslmode=disable", ip, user, database, port, passwd)
+	db, err := sql.Open(database, conn)
 	if err != nil {
-		fmt.Println("222222")
-		fmt.Println(err)
 		return nil
 	}
 	return db
 }
 
 func Download_rate() int {
-	cfg, err := ini.Load("conf/setting.ini")
-	if err != nil {
-		fmt.Println(err)
-		return 0
-	}
 	rate, err := cfg.Section("download").Key("rate").Int()
 	if err != nil {
 		return 0
