@@ -16,11 +16,11 @@ func Db() *sql.DB {
 	var ip = cfg.Section(Dbname).Key("ip").String()
 	var port = cfg.Section(Dbname).Key("port").String()
 	var user = cfg.Section(Dbname).Key("user").String()
-	var passwd = cfg.Section(Dbname).Key("passwd").String()
+	// var passwd = cfg.Section(Dbname).Key("passwd").String()
 	var database = cfg.Section(Dbname).Key("database").String()
 
-	conn := fmt.Sprintf("host=%s  user=%s  dbname=%s port=%s passwd=%s sslmode=disable", ip, user, database, port, passwd)
-	db, err := sql.Open(database, conn)
+	conn := fmt.Sprintf("host=%s  user=%s  dbname=%s port=%s sslmode=disable", ip, user, database, port)
+	db, err := sql.Open("postgres", conn)
 	if err != nil {
 		return nil
 	}
