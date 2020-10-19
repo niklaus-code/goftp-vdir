@@ -229,7 +229,7 @@ func (cmd commandCwd) RequireAuth() bool {
 func (cmd commandCwd) Execute(conn *Conn, param string) {
 	if string(conn.pwd[0]) == "a" {
 		path := conn.buildPath(param)
-		datapath := query_datapath(conn.user)
+		datapath := conn.rootpath
 		currentpath := datapath + path
 		err := conn.driver.ChangeDir(currentpath)
 
@@ -269,12 +269,12 @@ func (cmd commandDele) RequireAuth() bool {
 }
 
 func (cmd commandDele) Execute(conn *Conn, param string) {
-	if conn.privileges != 2 {
+	if Privileges != 2 {
 		conn.writeMessage(550, fmt.Sprint("没有删除权限"))
 		return
 	}
 	path := conn.buildPath(param)
-	datapath := query_datapath(conn.user)
+	datapath := conn.rootpath
 	currentpath := datapath + path
 	err := conn.driver.DeleteFile(currentpath)
 	if err == nil {
@@ -468,24 +468,14 @@ func filelist(dataid string) []*FilePath {
 	return filpathlist
 }
 
-func query_datapath(datasetid string) string {
-	c := config.Db()
-	var datapath string
-	err := c.QueryRow("select datapath from user_datasets where id = $1", datasetid).Scan(&datapath)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return datapath
-}
-
 func (cmd commandList) Execute(conn *Conn, param string) {
 	var files []FileInfo
 	if string(conn.pwd[0]) == "a" {
 		path := conn.buildPath(parseListParam(param))
-		datapath := query_datapath(conn.user)
-        if len(datapath) == 0 {
+		datapath := conn.rootpath
+		if len(datapath) == 0 {
 			conn.writeMessage(550, "no found home dir")
-            }
+		}
 		currentpath := datapath + path
 		info, err := conn.driver.Stat(currentpath)
 
@@ -602,7 +592,7 @@ func (cmd commandNlst) Execute(conn *Conn, param string) {
 		conn.writeMessage(550, err.Error())
 		return
 	}
-	conn.writeMessage(150, "Opening ASCII mode data connection for file list")
+	conn.writeMessage(150, "Opening ASCII mode data connection for file lisnn.pt")
 	conn.sendOutofbandData(listFormatter(files).Short())
 }
 
@@ -649,12 +639,12 @@ func (cmd commandMkd) RequireAuth() bool {
 }
 
 func (cmd commandMkd) Execute(conn *Conn, param string) {
-	if conn.privileges != 2 {
+	if Privileges != 2 {
 		conn.writeMessage(550, fmt.Sprint("没有权限"))
 		return
 	}
 	path := conn.buildPath(param)
-	datapath := query_datapath(conn.user)
+	datapath := conn.rootpath
 	currentpath := datapath + path
 	err := conn.driver.MakeDir(currentpath)
 	//err := conn.driver.MakeDir(path)
@@ -732,25 +722,31 @@ func (cmd commandPass) RequireAuth() bool {
 	return false
 }
 
+var Privileges int
+
 func (cmd commandPass) Execute(conn *Conn, param string) {
 	// ok, err := conn.server.Auth.CheckPasswd(conn.reqUser, param)
 	// var auth Auth
 	ok, err := CheckPasswd(conn.reqUser, param)
-
 	if err != nil {
 		conn.writeMessage(550, "Checking password error")
 		return
 	}
 
-	if ok != 0 {
-		conn.user = conn.reqUser
-		conn.pwd = param
-		conn.reqUser = ""
-		conn.privileges = ok
-		conn.writeMessage(230, "Password ok, continue")
-	} else {
-		conn.writeMessage(530, "Incorrect password, not logged in")
+	if ok.Privileges == 0 {
+		conn.writeMessage(533, "Authentication failed")
+		return
 	}
+
+	if len(ok.Datapath) == 0 {
+		conn.writeMessage(533, "no found rootpath")
+		return
+	}
+	conn.rootpath = ok.Datapath
+	conn.user = conn.reqUser
+	conn.pwd = param
+	Privileges = ok.Privileges
+	conn.writeMessage(230, "Password ok, continue")
 }
 
 // commandPasv responds to the PASV FTP command.
@@ -858,7 +854,7 @@ func (cmd commandQuit) RequireAuth() bool {
 }
 
 func (cmd commandQuit) Execute(conn *Conn, param string) {
-	conn.writeMessage(221, "Goodbye")
+	conn.writeMessage(221, "Goodbyeconn.p")
 	conn.Close()
 }
 
@@ -909,7 +905,7 @@ func (cmd commandRetr) Execute(conn *Conn, param string) {
 			conn.lastFilePos = 0
 			conn.appendData = false
 		}()
-		datapath := query_datapath(conn.user)
+		datapath := conn.rootpath
 		currentpath := datapath + path
 		bytes, data, err := conn.driver.GetFile(currentpath, conn.lastFilePos)
 		if err == nil {
@@ -1020,12 +1016,12 @@ func (cmd commandRnto) RequireAuth() bool {
 }
 
 func (cmd commandRnto) Execute(conn *Conn, param string) {
-	if conn.privileges != 2 {
+	if Privileges != 2 {
 		conn.writeMessage(550, fmt.Sprint("没有权限"))
 		return
 	}
 	path := conn.buildPath(param)
-	datapath := query_datapath(conn.user)
+	datapath := conn.rootpath
 
 	toPath := datapath + path
 	frompath := datapath + conn.renameFrom
@@ -1058,12 +1054,12 @@ func (cmd commandRmd) RequireAuth() bool {
 }
 
 func (cmd commandRmd) Execute(conn *Conn, param string) {
-	if conn.privileges != 2 {
+	if Privileges != 2 {
 		conn.writeMessage(550, fmt.Sprint("没有删除权限"))
 		return
 	}
 	path := conn.buildPath(param)
-	datapath := query_datapath(conn.user)
+	datapath := conn.rootpath
 	currentpath := datapath + path
 	err := conn.driver.DeleteDir(currentpath)
 	if err == nil {
@@ -1254,7 +1250,7 @@ func (cmd commandSize) RequireAuth() bool {
 func (cmd commandSize) Execute(conn *Conn, param string) {
 	if string(conn.pwd[0]) == "a" {
 		path := conn.buildPath(param)
-		datapath := query_datapath(conn.user)
+		datapath := conn.rootpath
 		currentpath := datapath + path
 		stat, err := conn.driver.Stat(currentpath)
 		if err != nil {
@@ -1292,7 +1288,7 @@ func (cmd commandStor) RequireAuth() bool {
 }
 
 func (cmd commandStor) Execute(conn *Conn, param string) {
-	if conn.privileges != 2 {
+	if Privileges != 2 {
 		conn.writeMessage(550, fmt.Sprint("没有权限"))
 		return
 	}
@@ -1303,7 +1299,7 @@ func (cmd commandStor) Execute(conn *Conn, param string) {
 	defer func() {
 		conn.appendData = false
 	}()
-	datapath := query_datapath(conn.user)
+	datapath := conn.rootpath
 	currentpath := datapath + targetPath
 	bytes, err := conn.driver.PutFile(currentpath, conn.dataConn, conn.appendData)
 	if err == nil {
