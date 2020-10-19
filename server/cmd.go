@@ -483,6 +483,9 @@ func (cmd commandList) Execute(conn *Conn, param string) {
 	if string(conn.pwd[0]) == "a" {
 		path := conn.buildPath(parseListParam(param))
 		datapath := query_datapath(conn.user)
+        if len(datapath) == 0 {
+			conn.writeMessage(550, "no found home dir")
+            }
 		currentpath := datapath + path
 		info, err := conn.driver.Stat(currentpath)
 
