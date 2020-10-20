@@ -270,7 +270,7 @@ func (cmd commandDele) RequireAuth() bool {
 
 func (cmd commandDele) Execute(conn *Conn, param string) {
 	if Privileges != 2 {
-		conn.writeMessage(550, fmt.Sprint("没有删除权限"))
+		conn.writeMessage(550, fmt.Sprint("no privileges"))
 		return
 	}
 	path := conn.buildPath(param)
@@ -474,7 +474,7 @@ func (cmd commandList) Execute(conn *Conn, param string) {
 		path := conn.buildPath(parseListParam(param))
 		datapath := conn.rootpath
 		if len(datapath) == 0 {
-			conn.writeMessage(550, "no found home dir")
+			conn.writeMessage(550, "no datapath found")
 		}
 		currentpath := datapath + path
 		info, err := conn.driver.Stat(currentpath)
@@ -640,7 +640,7 @@ func (cmd commandMkd) RequireAuth() bool {
 
 func (cmd commandMkd) Execute(conn *Conn, param string) {
 	if Privileges != 2 {
-		conn.writeMessage(550, fmt.Sprint("没有权限"))
+		conn.writeMessage(550, fmt.Sprint("no datadir found"))
 		return
 	}
 	path := conn.buildPath(param)
@@ -729,7 +729,7 @@ func (cmd commandPass) Execute(conn *Conn, param string) {
 	// var auth Auth
 	ok, err := CheckPasswd(conn.reqUser, param)
 	if err != nil {
-		conn.writeMessage(550, "Checking password error")
+		conn.writeMessage(550, "Authentication failed or no rootpath found"")
 		return
 	}
 
@@ -739,7 +739,7 @@ func (cmd commandPass) Execute(conn *Conn, param string) {
 	}
 
 	if len(ok.Datapath) == 0 {
-		conn.writeMessage(533, "no found rootpath")
+		conn.writeMessage(533, "no rootpath found")
 		return
 	}
 	conn.rootpath = ok.Datapath
@@ -1017,7 +1017,7 @@ func (cmd commandRnto) RequireAuth() bool {
 
 func (cmd commandRnto) Execute(conn *Conn, param string) {
 	if Privileges != 2 {
-		conn.writeMessage(550, fmt.Sprint("没有权限"))
+		conn.writeMessage(550, fmt.Sprint("no privileges"))
 		return
 	}
 	path := conn.buildPath(param)
@@ -1055,7 +1055,7 @@ func (cmd commandRmd) RequireAuth() bool {
 
 func (cmd commandRmd) Execute(conn *Conn, param string) {
 	if Privileges != 2 {
-		conn.writeMessage(550, fmt.Sprint("没有删除权限"))
+		conn.writeMessage(550, fmt.Sprint("no privileges"))
 		return
 	}
 	path := conn.buildPath(param)
@@ -1289,7 +1289,7 @@ func (cmd commandStor) RequireAuth() bool {
 
 func (cmd commandStor) Execute(conn *Conn, param string) {
 	if Privileges != 2 {
-		conn.writeMessage(550, fmt.Sprint("没有权限"))
+		conn.writeMessage(550, fmt.Sprint("no privileges"))
 		return
 	}
 
