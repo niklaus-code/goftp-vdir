@@ -729,7 +729,7 @@ func (cmd commandPass) Execute(conn *Conn, param string) {
 	// var auth Auth
 	ok, err := CheckPasswd(conn.reqUser, param)
 	if err != nil {
-		conn.writeMessage(550, "Authentication failed or no rootpath found"")
+		conn.writeMessage(550, "Authentication failed or no rootpath found")
 		return
 	}
 
