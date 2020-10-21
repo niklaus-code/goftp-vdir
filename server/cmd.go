@@ -447,6 +447,7 @@ func batchdatalist(batchid string) []*FilePath {
 		rows.Scan(&filepath.Datapath)
 		filpathlist = append(filpathlist, &filepath)
 	}
+	c.Close()
 	return filpathlist
 }
 
@@ -465,6 +466,7 @@ func filelist(dataid string) []*FilePath {
 		rows.Scan(&filepath.Datapath)
 		filpathlist = append(filpathlist, &filepath)
 	}
+	c.Close()
 	return filpathlist
 }
 

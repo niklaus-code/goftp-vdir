@@ -81,6 +81,7 @@ func check(name string, pass string) *Ftpusr {
 	default:
 		return &ftpusr
 	}
+	c.Close()
 	return &ftpusr
 }
 
