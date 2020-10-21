@@ -32,7 +32,7 @@ type Ftpusr struct {
 	Datapath   string
 }
 
-func check(name string, pass string) Ftpusr {
+func check(name string, pass string) *Ftpusr {
 	c := config.Db()
 
 	headpass := string(pass[0])
@@ -46,7 +46,7 @@ func check(name string, pass string) Ftpusr {
 		if err != nil {
 			fmt.Println("--------------------")
 			fmt.Println(err)
-			return ftpusr
+			return &ftpusr
 		}
 		switch {
 		case pass == ftpusr.Rpassword:
@@ -62,31 +62,31 @@ func check(name string, pass string) Ftpusr {
 		err := c.QueryRow("select ftppassword from user_favor_datasets where id = $1 and ftppassword = $2", name, pass).Scan(&ftpusr.Rpassword)
 
 		if err != nil {
-			return ftpusr
+			return &ftpusr
 		}
 		ftpusr.Privileges = 1
 		ftpusr.Datapath = "/tmp"
-		return ftpusr
+		return &ftpusr
 
 	case "c":
 		err := c.QueryRow("select ftppassword from gscloud_batch_info where batchid = $1 and ftppassword = $2", name, pass).Scan(&ftpusr.Rpassword)
 
 		if err != nil {
-			return ftpusr
+			return &ftpusr
 		}
 		ftpusr.Privileges = 1
 		ftpusr.Datapath = "/tmp"
-		return ftpusr
+		return &ftpusr
 
 	default:
-		return ftpusr
+		return &ftpusr
 	}
-	return ftpusr
+	return &ftpusr
 }
 
 // CheckPasswd will check user's password
 // func (a *SimpleAuth) CheckPasswd(name, pass string) (int, error) {
-func CheckPasswd(name, pass string) (Ftpusr, error) {
+func CheckPasswd(name, pass string) (*Ftpusr, error) {
 	return check(name, pass), nil
 	// return constantTimeEquals(name, a.Name) && constantTimeEquals(pass, a.Password), nil
 }
