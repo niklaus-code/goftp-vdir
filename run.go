@@ -9,15 +9,28 @@ package main
 import (
 	"flag"
 	"log"
-
+	"os"
 	filedriver "github.com/niklaus-code/goftp-vdir/file-driver"
 	"github.com/niklaus-code/goftp-vdir/server"
 )
 
+func init() {
+        file := "./" +"message"+ ".txt"
+        logFile, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
+        if err != nil {
+                panic(err)
+        }
+        log.SetOutput(logFile) // 将文件设置为log输出的文件
+        log.SetPrefix("[qSkipTool]")
+        log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC)
+        return
+}
+
+
 func main() {
 	var (
 		root = flag.String("root", "/tmp", "Root directory to serve")
-		port = flag.Int("port", 2121, "Port")
+		port = flag.Int("port", 21, "Port")
 		host = flag.String("host", "0.0.0.0", "Host")
 	)
 	flag.Parse()
