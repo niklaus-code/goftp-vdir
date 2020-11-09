@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-        file := "./" +"message"+ ".txt"
+        file := "/mnt/gscloud/" +"gscloud_ftp"+ ".log"
         logFile, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
         if err != nil {
                 panic(err)
@@ -25,7 +25,6 @@ func init() {
         log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC)
         return
 }
-
 
 func main() {
 	var (
