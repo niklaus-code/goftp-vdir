@@ -878,7 +878,7 @@ func (cmd commandRetr) RequireAuth() bool {
 
 func batchdatapath(filename string) string {
 	c := config.Db()
-
+	fmt.Println(filename)
 	var filepath string
 	err := c.QueryRow("select rel_filename from gscloud_batch_data where batchid = $1", filename).Scan(&filepath)
 	if err != nil {
@@ -922,7 +922,7 @@ func (cmd commandRetr) Execute(conn *Conn, param string) {
 		}
 	}
 	if string(conn.pwd[0]) == "b" {
-		filepath := filedatalist(conn.user)
+		filepath := filedatalist(param)
 		bytes, data, err := conn.driver.GetFile(filepath, conn.lastFilePos)
 		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
 		if err == nil {
@@ -937,7 +937,7 @@ func (cmd commandRetr) Execute(conn *Conn, param string) {
 		}
 	}
 	if string(conn.pwd[0]) == "c" {
-		filepath := batchdatapath(conn.user)
+		filepath := batchdatapath(param)
 		bytes, data, err := conn.driver.GetFile(filepath, conn.lastFilePos)
 		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
 		if err == nil {
