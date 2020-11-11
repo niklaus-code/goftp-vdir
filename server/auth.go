@@ -6,7 +6,7 @@ package server
 
 import (
 	"crypto/subtle"
-	"fmt"
+    "database/sql"
 
 	"github.com/niklaus-code/goftp-vdir/config"
 )
@@ -26,8 +26,8 @@ type Auth interface {
 // 	Password string
 // }
 type Ftpusr struct {
-	Rpassword  string
-	Wpassword  string
+	Rpassword  sql.NullString
+	Wpassword  sql.NullString
 	Privileges int
 	Datapath   string
 }
@@ -44,15 +44,13 @@ func check(name string, pass string) *Ftpusr {
 		err := c.QueryRow("select rpassword, wpassword, datapath from user_datasets where id = $1", name).Scan(&ftpusr.Rpassword, &ftpusr.Wpassword, &ftpusr.Datapath)
 
 		if err != nil {
-			fmt.Println("--------------------")
-			fmt.Println(err)
 			return &ftpusr
 		}
 		switch {
-		case pass == ftpusr.Rpassword:
+		case pass == ftpusr.Rpassword.String:
 			ftpusr.Privileges = 1
 
-		case pass == ftpusr.Wpassword:
+		case pass == ftpusr.Wpassword.String:
 			ftpusr.Privileges = 2
 		default:
 			ftpusr.Privileges = 0
