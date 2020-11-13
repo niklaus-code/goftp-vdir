@@ -921,7 +921,7 @@ func (cmd commandRetr) Execute(conn *Conn, param string) {
 		}
 	}
 	if string(conn.pwd[0]) == "b" {
-		filepath := filedatalist(param)
+		filepath := filedatalist(param[1:])
 		bytes, data, err := conn.driver.GetFile(filepath, conn.lastFilePos)
 		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
 		if err == nil {
