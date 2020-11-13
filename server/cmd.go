@@ -240,9 +240,10 @@ func (cmd commandCwd) Execute(conn *Conn, param string) {
 			conn.writeMessage(550, fmt.Sprint("Directory change to ", path, " failed: ", err))
 		}
 	} else {
-		path := conn.buildPath(param)
+		var path string
+		path = conn.buildPath(param)
 		err := conn.driver.ChangeDir(path)
-
+		
 		if err == nil {
 			conn.namePrefix = path
 			conn.writeMessage(250, "Directory changed to "+path)
@@ -878,13 +879,11 @@ func (cmd commandRetr) RequireAuth() bool {
 
 func batchdatapath(filename string) string {
 	c := config.Db()
-	fmt.Println(filename)
 	var filepath string
-	err := c.QueryRow("select rel_filename from gscloud_batch_data where batchid = $1", filename).Scan(&filepath)
+	err := c.QueryRow("select rel_filename from gscloud_batch_data where filename = $1", filename).Scan(&filepath)
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	return filepath
 }
 
@@ -937,7 +936,7 @@ func (cmd commandRetr) Execute(conn *Conn, param string) {
 		}
 	}
 	if string(conn.pwd[0]) == "c" {
-		filepath := batchdatapath(param)
+		filepath := batchdatapath(param[1:])
 		bytes, data, err := conn.driver.GetFile(filepath, conn.lastFilePos)
 		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
 		if err == nil {
