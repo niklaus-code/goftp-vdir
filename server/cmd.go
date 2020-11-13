@@ -891,7 +891,7 @@ func filedatalist(filename string) string {
 	c := config.Db()
 
 	var filepath string
-	err := c.QueryRow("select datapath from user_favor_dataset_files where datasetid = $1", filename).Scan(&filepath)
+	err := c.QueryRow("select datapath from user_favor_dataset_files where filename = $1", filename).Scan(&filepath)
 	if err != nil {
 		fmt.Println(err)
 	}
