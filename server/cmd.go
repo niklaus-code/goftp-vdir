@@ -921,7 +921,7 @@ func (cmd commandRetr) Execute(conn *Conn, param string) {
 		}
 	}
 	if string(conn.pwd[0]) == "b" {
-		filepath := filedatalist(param[1:])
+		filepath := filedatalist(param)
 		bytes, data, err := conn.driver.GetFile(filepath, conn.lastFilePos)
 		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
 		if err == nil {
@@ -936,7 +936,7 @@ func (cmd commandRetr) Execute(conn *Conn, param string) {
 		}
 	}
 	if string(conn.pwd[0]) == "c" {
-		filepath := batchdatapath(param[1:])
+		filepath := batchdatapath(param)
 		bytes, data, err := conn.driver.GetFile(filepath, conn.lastFilePos)
 		//bytes, data, err := conn.driver.GetFile(path, conn.lastFilePos)
 		if err == nil {
