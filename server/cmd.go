@@ -741,11 +741,11 @@ func (cmd commandPass) Execute(conn *Conn, param string) {
 		return
 	}
 
-	if len(ok.Datapath) == 0 {
+	if len(ok.Datapath.String) == 0 {
 		conn.writeMessage(533, "no rootpath found")
 		return
 	}
-	conn.rootpath = ok.Datapath
+	conn.rootpath = ok.Datapath.String
 	conn.user = conn.reqUser
 	conn.pwd = param
 	Privileges = ok.Privileges

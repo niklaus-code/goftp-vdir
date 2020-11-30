@@ -5,9 +5,9 @@
 package server
 
 import (
+	"fmt"
 	"crypto/subtle"
     "database/sql"
-
 	"github.com/niklaus-code/goftp-vdir/config"
 )
 
@@ -29,14 +29,12 @@ type Ftpusr struct {
 	Rpassword  sql.NullString
 	Wpassword  sql.NullString
 	Privileges int
-	Datapath   string
+	Datapath   sql.NullString
 }
 
 func check(name string, pass string) *Ftpusr {
 	c := config.Db()
-
 	headpass := string(pass[0])
-
 	var ftpusr Ftpusr
 
 	switch headpass {
@@ -44,6 +42,7 @@ func check(name string, pass string) *Ftpusr {
 		err := c.QueryRow("select rpassword, wpassword, datapath from user_datasets where id = $1", name).Scan(&ftpusr.Rpassword, &ftpusr.Wpassword, &ftpusr.Datapath)
 
 		if err != nil {
+			fmt.Println(err)
 			return &ftpusr
 		}
 		switch {
@@ -55,31 +54,35 @@ func check(name string, pass string) *Ftpusr {
 		default:
 			ftpusr.Privileges = 0
 		}
+		c.Close()
 
 	case "b":
 		err := c.QueryRow("select ftppassword from user_favor_datasets where id = $1 and ftppassword = $2", name, pass).Scan(&ftpusr.Rpassword)
 
 		if err != nil {
+			c.Close()
 			return &ftpusr
 		}
 		ftpusr.Privileges = 1
-		ftpusr.Datapath = "/tmp"
+		ftpusr.Datapath.String = "/tmp"
+		c.Close()
 		return &ftpusr
 
 	case "c":
 		err := c.QueryRow("select ftppassword from gscloud_batch_info where batchid = $1 and ftppassword = $2", name, pass).Scan(&ftpusr.Rpassword)
 
 		if err != nil {
+			c.Close()
 			return &ftpusr
 		}
 		ftpusr.Privileges = 1
-		ftpusr.Datapath = "/tmp"
+		ftpusr.Datapath.String = "/tmp"
+		c.Close()
 		return &ftpusr
 
 	default:
 		return &ftpusr
 	}
-	c.Close()
 	return &ftpusr
 }
 
