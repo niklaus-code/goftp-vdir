@@ -880,6 +880,9 @@ func (cmd commandRetr) RequireAuth() bool {
 func batchdatapath(filename string) string {
 	c := config.Db()
 	var filepath string
+	if string(filename[0]) == "/" {
+		filename = filename[1:]
+		}
 	err := c.QueryRow("select rel_filename from gscloud_batch_data where filename = $1", filename).Scan(&filepath)
 	if err != nil {
 		fmt.Println(err)
@@ -892,6 +895,9 @@ func filedatalist(filename string) string {
 
 	var filepath string
 	err := c.QueryRow("select datapath from user_favor_dataset_files where filename = $1", filename).Scan(&filepath)
+	if string(filename[0]) == "/" {
+		filename = filename[1:]
+		}
 	if err != nil {
 		fmt.Println(err)
 	}
