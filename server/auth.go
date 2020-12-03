@@ -40,6 +40,7 @@ func check(name string, pass string) *Ftpusr {
 	switch headpass {
 	case "a":
 		err := c.QueryRow("select rpassword, wpassword, datapath from user_datasets where id = $1", name).Scan(&ftpusr.Rpassword, &ftpusr.Wpassword, &ftpusr.Datapath)
+		c.Close()
 
 		if err != nil {
 			fmt.Println(err)
@@ -54,22 +55,22 @@ func check(name string, pass string) *Ftpusr {
 		default:
 			ftpusr.Privileges = 0
 		}
-		c.Close()
 
 	case "b":
 		err := c.QueryRow("select ftppassword from user_favor_datasets where id = $1 and ftppassword = $2", name, pass).Scan(&ftpusr.Rpassword)
+		c.Close()
 
 		if err != nil {
-			c.Close()
+			fmt.Println(err)
 			return &ftpusr
 		}
-		ftpusr.Privileges = 1
+		ftpusr.Privileges = 2
 		ftpusr.Datapath.String = "/tmp"
-		c.Close()
 		return &ftpusr
 
 	case "c":
 		err := c.QueryRow("select ftppassword from gscloud_batch_info where batchid = $1 and ftppassword = $2", name, pass).Scan(&ftpusr.Rpassword)
+		c.Close()
 
 		if err != nil {
 			c.Close()
@@ -77,7 +78,6 @@ func check(name string, pass string) *Ftpusr {
 		}
 		ftpusr.Privileges = 1
 		ftpusr.Datapath.String = "/tmp"
-		c.Close()
 		return &ftpusr
 
 	default:

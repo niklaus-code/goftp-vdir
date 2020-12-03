@@ -437,6 +437,7 @@ type FilePath struct {
 func batchdatalist(batchid string) []*FilePath {
 	c := config.Db()
 	rows, err := c.Query("select rel_filename from gscloud_batch_data where batchid = $1", batchid)
+	c.Close()
 	if err != nil {
 		fmt.Println(err)
 		return nil
@@ -448,14 +449,14 @@ func batchdatalist(batchid string) []*FilePath {
 		rows.Scan(&filepath.Datapath)
 		filpathlist = append(filpathlist, &filepath)
 	}
-	c.Close()
 	return filpathlist
 }
 
 func filelist(dataid string) []*FilePath {
 	c := config.Db()
 
-	rows, err := c.Query("select datapath from user_favor_dataset_files where datasetid = $1", dataid)
+	rows, err := c.Query("select datapath from user_favor_datasets_files where datasetid = $1", dataid)
+	c.Close()
 	if err != nil {
 		fmt.Println(err)
 		return nil
@@ -467,7 +468,6 @@ func filelist(dataid string) []*FilePath {
 		rows.Scan(&filepath.Datapath)
 		filpathlist = append(filpathlist, &filepath)
 	}
-	c.Close()
 	return filpathlist
 }
 
@@ -509,8 +509,9 @@ func (cmd commandList) Execute(conn *Conn, param string) {
 	}
 	if string(conn.pwd[0]) == "b" {
 		filepaths := filelist(conn.user)
-
 		for i := 0; i < len(filepaths); i++ {
+			fmt.Println("~~~~~~~~~~~~~~~~~~~~~")
+			fmt.Println(len(filepaths[i].Datapath))
 			err := conn.driver.ListDirs(filepaths[i].Datapath, func(f FileInfo) error {
 				files = append(files, f)
 				return nil
@@ -884,6 +885,7 @@ func batchdatapath(filename string) string {
 		filename = filename[1:]
 		}
 	err := c.QueryRow("select rel_filename from gscloud_batch_data where filename = $1", filename).Scan(&filepath)
+	c.Close()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -891,13 +893,14 @@ func batchdatapath(filename string) string {
 }
 
 func filedatalist(filename string) string {
-	c := config.Db()
-
-	var filepath string
-	err := c.QueryRow("select datapath from user_favor_dataset_files where filename = $1", filename).Scan(&filepath)
 	if string(filename[0]) == "/" {
 		filename = filename[1:]
 		}
+	c := config.Db()
+
+	var filepath string
+	err := c.QueryRow("select datapath from user_favor_datasets_files where filename = $1", filename).Scan(&filepath)
+	c.Close()
 	if err != nil {
 		fmt.Println(err)
 	}
