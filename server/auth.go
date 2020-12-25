@@ -64,7 +64,7 @@ func check(name string, pass string) *Ftpusr {
 			fmt.Println(err)
 			return &ftpusr
 		}
-		ftpusr.Privileges = 2
+		ftpusr.Privileges = 1
 		ftpusr.Datapath.String = "/tmp"
 		return &ftpusr
 
