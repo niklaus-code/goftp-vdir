@@ -15,6 +15,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"fmt"
+	"github.com/niklaus-code/goftp/config"
 )
 
 // DataSocket describes a data socket is used to send non-control data between the client and
@@ -202,12 +204,32 @@ func (socket *ftpPassiveSocket) Close() error {
 	return nil
 }
 
+var socketportlist = []int {}
+
 func (socket *ftpPassiveSocket) GoListenAndServe(sessionID string) (err error) {
+	var startport, _ = strconv.Atoi(config.StartPort)
+	var rangeport, _ = strconv.Atoi(config.RangePort)
+	for i := 0; i < rangeport; i++ {
+		socketportlist = append(socketportlist, startport+i)
+	}
+
+	var laddr *net.TCPAddr
+	for _, v := range socketportlist {
+		laddr, err = net.ResolveTCPAddr("tcp", net.JoinHostPort("", strconv.Itoa(v)))
+		if err != nil {
+			fmt.Println(nil)
+			}
+		socketportlist = socketportlist[1:]
+		break
+	}
+
+	/*
 	laddr, err := net.ResolveTCPAddr("tcp", net.JoinHostPort("", strconv.Itoa(socket.port)))
 	if err != nil {
 		socket.logger.Print(sessionID, err)
 		return
 	}
+	*/
 
 	var tcplistener *net.TCPListener
 	tcplistener, err = net.ListenTCP("tcp", laddr)
@@ -251,6 +273,7 @@ func (socket *ftpPassiveSocket) GoListenAndServe(sessionID string) (err error) {
 		socket.err = nil
 		socket.conn = conn
 		_ = listener.Close()
+		socketportlist = append(socketportlist, socket.port)
 	}()
 	return nil
 }

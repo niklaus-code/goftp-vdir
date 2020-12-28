@@ -49,6 +49,7 @@ type Conn struct {
 	rootpath      string
 	pwd           string
 	filepathlist  []*FilePath
+	remoteaddr    net.Addr
 }
 
 func (conn *Conn) LoginUser() string {

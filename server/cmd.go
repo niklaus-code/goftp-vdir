@@ -745,6 +745,8 @@ func (cmd commandPass) Execute(conn *Conn, param string) {
 		conn.writeMessage(533, "no rootpath found")
 		return
 	}
+
+	log.SetPrefix(conn.reqUser + " " + conn.remoteaddr.String() + " ")	
 	conn.rootpath = ok.Datapath.String
 	conn.user = conn.reqUser
 	conn.pwd = param

@@ -21,8 +21,6 @@ func init() {
                 panic(err)
         }
         log.SetOutput(logFile) // 将文件设置为log输出的文件
-        log.SetPrefix("[qSkipTool]")
-        log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC)
         return
 }
 
