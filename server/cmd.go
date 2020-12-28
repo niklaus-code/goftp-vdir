@@ -115,7 +115,8 @@ func (cmd commandAppe) Execute(conn *Conn, param string) {
 	targetPath := conn.buildPath(param)
 	conn.writeMessage(150, "Data transfer starting")
 
-	currentpath := conn.rootpath + "/" + conn.user + targetPath
+	//currentpath := conn.rootpath + "/" + conn.user + targetPath
+	currentpath := conn.rootpath + "/" +  targetPath
 	bytes, err := conn.driver.PutFile(currentpath, conn.dataConn, true)
 	if err == nil {
 		msg := "OK, received " + strconv.Itoa(int(bytes)) + " bytes"
@@ -455,7 +456,7 @@ func batchdatalist(batchid string) []*FilePath {
 func filelist(dataid string) []*FilePath {
 	c := config.Db()
 
-	rows, err := c.Query("select datapath from user_favor_datasets_files where datasetid = $1", dataid)
+	rows, err := c.Query("select datapath from user_favor_dataset_files where datasetid = $1", dataid)
 	c.Close()
 	if err != nil {
 		fmt.Println(err)
@@ -510,8 +511,6 @@ func (cmd commandList) Execute(conn *Conn, param string) {
 	if string(conn.pwd[0]) == "b" {
 		filepaths := filelist(conn.user)
 		for i := 0; i < len(filepaths); i++ {
-			fmt.Println("~~~~~~~~~~~~~~~~~~~~~")
-			fmt.Println(len(filepaths[i].Datapath))
 			err := conn.driver.ListDirs(filepaths[i].Datapath, func(f FileInfo) error {
 				files = append(files, f)
 				return nil
@@ -899,7 +898,7 @@ func filedatalist(filename string) string {
 	c := config.Db()
 
 	var filepath string
-	err := c.QueryRow("select datapath from user_favor_datasets_files where filename = $1", filename).Scan(&filepath)
+	err := c.QueryRow("select datapath from user_favor_dataset_files where filename = $1", filename).Scan(&filepath)
 	c.Close()
 	if err != nil {
 		fmt.Println(err)
